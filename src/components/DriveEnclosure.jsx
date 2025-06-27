@@ -1,10 +1,28 @@
 import { Box } from "grommet";
-import driveSvg from "../assets/drive.svg";
-import enclosureSvg from "../assets/enclosure.svg";
-import llfdriveSvg from "../assets/lffdrive.svg";
-import llfenclosureSvg from "../assets/Lffenclosure.svg";
+import llfdriveSvg from "../assets/Lff_drive.svg";
+import llfenclosureSvg from "../assets/Lff_Enclosure.svg";
+import enclosureSvg from "../assets/SFF_Enclosure.svg";
+import performanceDriveSvg from "../assets/SFF_Performance_drive.svg";
+import standardDriveSvg from "../assets/SFF_Standard_drive.svg";
 
-const DriveEnclosure = ({ filledCount, formFactor = "SFF" }) => {
+// Accept standardCount and performanceCount for SFF, filledCount for LFF
+const DriveEnclosure = ({
+  filledCount,
+  standardCount = 0,
+  performanceCount = 0,
+  formFactor = "SFF",
+}) => {
+  // For SFF, build an array of drive types
+  let drives = [];
+  if (formFactor === "SFF") {
+    drives = [
+      ...Array(standardCount).fill("standard"),
+      ...Array(performanceCount).fill("performance"),
+    ];
+  } else {
+    drives = Array.from({ length: filledCount }).fill("lff");
+  }
+
   return (
     <Box
       style={{
@@ -25,29 +43,46 @@ const DriveEnclosure = ({ filledCount, formFactor = "SFF" }) => {
       >
         {/* Background enclosure */}
         <image
-          href={formFactor == "SFF" ? enclosureSvg : llfenclosureSvg}
+          href={formFactor === "SFF" ? enclosureSvg : llfenclosureSvg}
           width="1900"
           height="300"
           preserveAspectRatio="xMidYMid meet"
         />
 
         {/* Drives */}
-        {Array.from({ length: filledCount }).map((_, i) => {
-          const row = Math.floor(i / 24);
-          const col = i % 24;
+        {drives.map((type, i) => {
+          let row, col, x, y, width, height, href;
 
-          const extraGap = i >= 12 ? 40 : 0;
-          const x = 120 + col * 68.5 + extraGap;
-          const y = row === 0 ? 15 : 185; // Vertical position based on row
+          if (formFactor === "SFF") {
+            // 1 row, 24 columns
+            // Add extra gap after 12th drive for visual separation
+            const extraGap = i >= 12 ? 40 : 0;
+            row = 0;
+            col = i % 24;
+            x = 120 + col * 68.5 + extraGap;
+            y = row === 0 ? 15 : 185;
+            width = 50;
+            height = 270;
+            href = type === "standard" ? standardDriveSvg : performanceDriveSvg;
+          } else {
+            // 3 rows, 4 columns for LFF
+            row = Math.floor(i / 4);
+            col = i % 4;
+            x = 120 + col * 420.5;
+            y = 15 + row * 100;
+            width = 400;
+            height = 80;
+            href = llfdriveSvg;
+          }
 
           return (
             <image
               key={i}
-              href={formFactor == "SFF" ? driveSvg : llfdriveSvg}
+              href={href}
               x={x}
               y={y}
-              width={50}
-              height={280}
+              width={width}
+              height={height}
               preserveAspectRatio="none"
             />
           );

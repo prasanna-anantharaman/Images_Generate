@@ -1,55 +1,139 @@
-import { Box, Button, Grommet, Heading, RadioButtonGroup } from "grommet";
+import { Box, Grommet, Heading } from "grommet";
 import { hpe } from "grommet-theme-hpe";
 import { useState } from "react";
 import "./App.css";
-import DriveEnclosure from "./components/DriveEnclosure"; // Import the DriveEnclosure component
+import DriveEnclosure from "./components/DriveEnclosure";
+
+const enclosureConfig = {
+  SFF: {
+    perEnclosure: 24,
+  },
+  LFF: {
+    perEnclosure: 12,
+  },
+};
 
 function App() {
-  const [filledCount, setFilledCount] = useState(24); // State to track the number of filled slots
-  const totalSlots = 24; // Total number of slots in the enclosure
-  const [formFactor, setFormFactor] = useState("SFF"); // State to track the form factor
+  // User can set these dynamically
+  const [standardCount, setStandardCount] = useState(10);
+  const [performanceCount, setPerformanceCount] = useState(14);
+  const [archiveCount, setArchiveCount] = useState(12);
+
+  // Calculate total drives for each type
+  const totalSffDrives = standardCount + performanceCount;
+  const totalLffDrives = archiveCount;
+
+  // Calculate how many enclosures needed
+  const sffEnclosureCount = Math.ceil(
+    totalSffDrives / enclosureConfig.SFF.perEnclosure
+  );
+  const lffEnclosureCount = Math.ceil(
+    totalLffDrives / enclosureConfig.LFF.perEnclosure
+  );
 
   return (
     <Grommet theme={hpe} full>
       <Box pad="medium" align="center">
         <Heading level="2">Dynamic Drive Enclosure</Heading>
         <Box direction="row" gap="medium" margin={{ bottom: "medium" }}>
-          <Button
-            label={`Add Drive (Filled: ${filledCount}/${totalSlots})`}
-            onClick={() =>
-              setFilledCount((count) => Math.min(count + 1, totalSlots))
-            }
-            primary
-          />
-          <Button
-            label="Remove Drive"
-            onClick={() => setFilledCount((count) => Math.max(count - 1, 0))}
-            secondary
-          />
-        </Box>
-        <Box
-          direction="row"
-          gap="medium"
-          margin={{ bottom: "medium" }}
-          align="center"
-        >
-          <RadioButtonGroup
-            name="formFactor"
-            options={[
-              { label: "SFF (Small Form Factor)", value: "SFF" },
-              { label: "LFF (Large Form Factor)", value: "LFF" },
-            ]}
-            value={formFactor}
-            onChange={(event) => setFormFactor(event.target.value)}
-            direction="row"
-          />
+          <Box>
+            <label>
+              Standard Drives:
+              <input
+                type="number"
+                min={0}
+                step={1}
+                aria-label="Standard Drives"
+                value={standardCount}
+                onChange={(e) =>
+                  setStandardCount(
+                    e.target.value === "" ? 0 : Number(e.target.value)
+                  )
+                }
+                style={{ width: 60, marginLeft: 8 }}
+              />
+            </label>
+          </Box>
+          <Box>
+            <label>
+              Performance Drives:
+              <input
+                type="number"
+                min={0}
+                step={1}
+                aria-label="Performance Drives"
+                value={performanceCount}
+                onChange={(e) =>
+                  setPerformanceCount(
+                    e.target.value === "" ? 0 : Number(e.target.value)
+                  )
+                }
+                style={{ width: 60, marginLeft: 8 }}
+              />
+            </label>
+          </Box>
+          <Box>
+            <label>
+              Archive Drives:
+              <input
+                type="number"
+                min={0}
+                step={1}
+                aria-label="Archive Drives"
+                value={archiveCount}
+                onChange={(e) =>
+                  setArchiveCount(
+                    e.target.value === "" ? 0 : Number(e.target.value)
+                  )
+                }
+                style={{ width: 60, marginLeft: 8 }}
+              />
+            </label>
+          </Box>
         </Box>
         <Box alignSelf="center">
-          <DriveEnclosure
-            totalSlots={totalSlots}
-            filledCount={filledCount}
-            formFactor={formFactor}
-          />
+          {/* SFF Enclosures */}
+          {Array.from({ length: sffEnclosureCount }).map((_, idx) => {
+            // Prepare an array representing all SFF drives: 'standard' then 'performance'
+            const allSffDrives = [
+              ...Array(standardCount).fill("standard"),
+              ...Array(performanceCount).fill("performance"),
+            ];
+            const start = idx * enclosureConfig.SFF.perEnclosure;
+            const drivesInThis = allSffDrives.slice(
+              start,
+              start + enclosureConfig.SFF.perEnclosure
+            );
+            const enclosureStandard = drivesInThis.filter(
+              (d) => d === "standard"
+            ).length;
+            const enclosurePerformance = drivesInThis.filter(
+              (d) => d === "performance"
+            ).length;
+            return (
+              <DriveEnclosure
+                key={`sff-${idx}`}
+                formFactor="SFF"
+                standardCount={enclosureStandard}
+                performanceCount={enclosurePerformance}
+              />
+            );
+          })}
+          {/* LFF Enclosures */}
+          {Array.from({ length: lffEnclosureCount }).map((_, idx) => {
+            const start = idx * enclosureConfig.LFF.perEnclosure;
+            const drivesInThis = Math.max(
+              0,
+              Math.min(archiveCount - start, enclosureConfig.LFF.perEnclosure)
+            );
+            return (
+              <DriveEnclosure
+                key={`lff-${idx}`}
+                formFactor="LFF"
+                filledCount={drivesInThis}
+              />
+            );
+          })}
         </Box>
       </Box>
     </Grommet>
